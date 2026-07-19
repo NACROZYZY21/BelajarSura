@@ -23,25 +23,36 @@ OPENROUTER_MODEL=anthropic/claude-haiku-4.5        # bisa diganti model lain
 > Catatan: tidak ada model Claude yang gratis di OpenRouter; alternatif gratis
 > misalnya `google/gemini-2.0-flash-exp:free`.
 
-### 2. Setup database (migration + akun demo + konten)
+### 2. Setup database (migration + seed)
 
 ```bash
-node scripts/setup-db.mjs
+node scripts/setup-db.mjs        # migration 001 + akun & konten dasar
+node scripts/run-sql.mjs supabase/migrations/002_penilaian.sql
+node scripts/run-sql.mjs supabase/migrations/003_media.sql
+node scripts/run-sql.mjs supabase/migrations/004_game_baru.sql
+node scripts/run-sql.mjs supabase/migrations/005_tahun_ajaran.sql
+node scripts/seed-lengkap.mjs    # seed lengkap (lihat di bawah)
 ```
 
-Satu perintah ini menjalankan migration (`supabase/migrations/001_init.sql`:
-tabel, trigger profil otomatis, RLS, fungsi leaderboard), membuat akun demo,
-dan mengisi konten. Aman dijalankan ulang (idempotent).
+Semua script **idempotent** — aman dijalankan berulang, tidak menduplikasi data.
+(Alternatif: jalankan file SQL migration di Supabase Dashboard → SQL Editor.)
 
-Data demo: 2 mapel, 6 modul (dengan soal & game), 5 game global, 6 badge, dan akun:
+**Seed lengkap** (`seed-lengkap.mjs`) mengisi: **10 mata pelajaran** (ikon & warna
+berbeda), **±50 modul published** kelas 1–6 (materi + 5 PG + 2 esai, bobot total 100),
+konten **11 game** (≥10 item per game), **10 badge**, **10 siswa** dengan XP/level
+bervariasi + progress belajar realistis + antrian review esai terisi, serta tahun
+ajaran aktif **2026/2027** dan arsip **2025/2026** berisi 3 alumni.
+
+#### 🔑 Kredensial
 
 | Role  | Login | Password |
 |-------|-------|----------|
-| Admin | `admin@belajarceria.id` | `admin123` |
-| Siswa kelas 1 | `budi` | `belajar123` |
-| Siswa kelas 2 | `sari` | `belajar123` |
+| **Admin** | `admin@belajarceria.id` | `admin123` |
+| Siswa | `aisyah`, `budi`, `citra`, `dimas`, `eka`, `fajar`, `gita`, `hasan`, `intan`, `joko`, `sari` | `belajar123` |
+| Alumni (arsip, tidak bisa login) | `rudi`, `wati`, `yusuf` | `belajar123` |
 
-(Siswa cukup mengetik nama pengguna — domain email ditambahkan otomatis.)
+(Siswa cukup mengetik nama pengguna — domain email ditambahkan otomatis.
+Cek isi database kapan saja: `node scripts/cek-data.mjs`.)
 
 ### 3. Jalankan
 

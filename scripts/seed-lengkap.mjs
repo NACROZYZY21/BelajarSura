@@ -549,7 +549,7 @@ const BADGES = [
   { kode: "game_master", nama_id: "Jagoan Game", nama_en: "Game Master", ikon: "🎮", d_id: "Mainkan semua game", d_en: "Play all the games", xp: 0 },
   { kode: "modul_10", nama_id: "Penjelajah Ilmu", nama_en: "Knowledge Explorer", ikon: "🧭", d_id: "Selesaikan 10 modul", d_en: "Finish 10 modules", xp: 0 },
   { kode: "skor_100", nama_id: "Nilai Sempurna", nama_en: "Perfect Score", ikon: "💯", d_id: "Dapat nilai 100 di satu modul", d_en: "Score 100 in a module", xp: 0 },
-  { kode: "tiga_mapel", nama_id: "Serba Bisa", nama_en: "All-Rounder", ikon: "�require", d_id: "Belajar di 3 mapel berbeda", d_en: "Learn in 3 different subjects", xp: 0 },
+  { kode: "tiga_mapel", nama_id: "Serba Bisa", nama_en: "All-Rounder", ikon: "🎒", d_id: "Belajar di 3 mapel berbeda", d_en: "Learn in 3 different subjects", xp: 0 },
 ];
 
 // ---------- 10 SISWA AKTIF + 3 ALUMNI ARSIP ----------
@@ -663,7 +663,7 @@ async function main() {
       `insert into public.badges (kode,nama_id,nama_en,ikon,deskripsi_id,deskripsi_en,xp_syarat)
        values ($1,$2,$3,$4,$5,$6,$7)
        on conflict (kode) do update set nama_id=excluded.nama_id, nama_en=excluded.nama_en, ikon=excluded.ikon`,
-      [b.kode, b.nama_id, b.nama_en, b.ikon === "�require" ? "🎒" : b.ikon, b.d_id, b.d_en, b.xp]
+      [b.kode, b.nama_id, b.nama_en, b.ikon, b.d_id, b.d_en, b.xp]
     );
   }
 
@@ -745,8 +745,10 @@ async function main() {
 
   // 8) esai: sebagian menunggu review, sebagian sudah dinilai
   console.log("8) Antrian review esai...");
-  const { rows: esaiCount } = await db.query("select count(*)::int as n from public.essay_submissions");
-  if (esaiCount[0].n < 4) {
+  const { rows: esaiCount } = await db.query(
+    "select count(*)::int as n from public.essay_submissions where status_review='menunggu_review'"
+  );
+  if (esaiCount[0].n < 3) {
     const contohJawab = ["bola", "empat", "hijau", "gotong royong", "buaya", "kelas dibersihkan bersama"];
     const targets = [
       { nama: "Aisyah", status: "menunggu_review" }, { nama: "Dimas", status: "menunggu_review" },
@@ -763,6 +765,12 @@ async function main() {
       for (const p of prog) {
         const q = allQs.find((x) => x.module_id === p.module_id && x.tipe === "esai");
         if (!q) continue;
+        // lewati soal yang sudah pernah dijawab siswa ini (mis. sudah dinilai)
+        const { rows: sudah } = await db.query(
+          "select 1 from public.essay_submissions where student_id=$1::uuid and question_id=$2",
+          [sid, q.id]
+        );
+        if (sudah[0]) continue;
         await db.query(
           `insert into public.essay_submissions
              (student_id,module_id,question_id,jawaban,status_review,poin_diberikan,komentar_admin,direview_pada)
