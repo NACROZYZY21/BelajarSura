@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select().eq("role", "student"),
+      supabase.from("profiles").select().eq("role", "siswa"),
       supabase.from("modules").select(),
       supabase.from("student_progress").select().order("updated_at", { ascending: false }),
       supabase.from("app_settings").select().eq("key", "leaderboard_aktif").maybeSingle(),
@@ -84,9 +84,12 @@ export default function AdminDashboard() {
   const toggleLeaderboard = async () => {
     const next = !leaderboardOn;
     setLeaderboardOn(next);
-    await createClient()
-      .from("app_settings")
-      .upsert({ key: "leaderboard_aktif", value: next });
+    // app_settings kini per-tenant: update baris milik guru bila ada, else insert
+    const supabase = createClient();
+    const { data: row } = await supabase
+      .from("app_settings").select("id").eq("key", "leaderboard_aktif").maybeSingle();
+    if (row) await supabase.from("app_settings").update({ value: next }).eq("id", row.id);
+    else await supabase.from("app_settings").insert({ key: "leaderboard_aktif", value: next });
   };
 
   const cards = stats

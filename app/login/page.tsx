@@ -13,12 +13,19 @@ const STUDENT_DOMAIN = "@siswa.belajarceria.id";
 
 function ArsipNotice() {
   const searchParams = useSearchParams();
-  if (searchParams.get("arsip") !== "1") return null;
-  return (
-    <p className="mb-3 rounded-2xl bg-sunny-100 px-4 py-3 text-center text-sm font-bold text-tangerine-500">
-      📦 Akunmu sudah diarsipkan karena tahun ajaran berakhir. Tanya Bapak/Ibu Guru ya!
-    </p>
-  );
+  if (searchParams.get("arsip") === "1")
+    return (
+      <p className="mb-3 rounded-2xl bg-sunny-100 px-4 py-3 text-center text-sm font-bold text-tangerine-500">
+        📦 Akunmu tidak aktif (tahun ajaran berakhir atau akun gurumu nonaktif). Tanya Bapak/Ibu Guru ya!
+      </p>
+    );
+  if (searchParams.get("nonaktif") === "1")
+    return (
+      <p className="mb-3 rounded-2xl bg-berry-100 px-4 py-3 text-center text-sm font-bold text-berry-500">
+        🔒 Akun Anda sedang nonaktif. Silakan hubungi pengelola untuk mengaktifkan kembali langganan.
+      </p>
+    );
+  return null;
 }
 
 export default function LoginPage() {
@@ -51,7 +58,13 @@ export default function LoginPage() {
       .select("role")
       .eq("id", data.user.id)
       .single();
-    router.push(profile?.role === "admin" ? "/admin" : "/belajar");
+    router.push(
+      profile?.role === "superadmin"
+        ? "/superadmin"
+        : profile?.role === "guru"
+          ? "/admin"
+          : "/belajar"
+    );
     router.refresh();
   };
 

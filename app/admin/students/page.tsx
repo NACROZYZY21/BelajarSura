@@ -21,7 +21,7 @@ export default function StudentsPage() {
     createClient()
       .from("profiles")
       .select()
-      .eq("role", "student")
+      .eq("role", "siswa")
       .then(({ data }) => setStudents((data as Profile[]) ?? []));
 
   useEffect(() => {

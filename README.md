@@ -45,9 +45,16 @@ ajaran aktif **2026/2027** dan arsip **2025/2026** berisi 3 alumni.
 
 #### 🔑 Kredensial
 
+> Fase 3: sistem kini **multi-tenant per guru** (SaaS). Role: `superadmin` → `guru` → `siswa`.
+> Migration terbaru: `node scripts/run-sql.mjs supabase/migrations/006_multi_tenant.sql`
+> lalu `node scripts/seed-superadmin.mjs`.
+
 | Role  | Login | Password |
 |-------|-------|----------|
-| **Admin** | `admin@belajarceria.id` | `admin123` |
+| **Superadmin** | `sultan.210403@gmail.com` | `SuperCeria#2026` ⚠️ ganti setelah login pertama (menu 🔑) |
+| **Guru** (tenant pertama, data lengkap) | `admin@belajarceria.id` | `admin123` |
+| **Guru contoh aktif** | `sinta@guru.belajarceria.id` | `gurusinta123` — siswa: `lala`,`momo`,`nino` / `belajar123` |
+| **Guru contoh NONAKTIF** (uji blokir) | `rahmat@guru.belajarceria.id` | `gururahmat123` — siswa: `opik`,`putri` |
 | Siswa | `aisyah`, `budi`, `citra`, `dimas`, `eka`, `fajar`, `gita`, `hasan`, `intan`, `joko`, `sari` | `belajar123` |
 | Alumni (arsip, tidak bisa login) | `rudi`, `wati`, `yusuf` | `belajar123` |
 

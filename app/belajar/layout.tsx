@@ -83,6 +83,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const nav = [
     { href: "/belajar", icon: "🏠", label: t("home") },
     { href: "/belajar/game", icon: "🎮", label: t("game_zone") },
+    { href: "/belajar/ujian", icon: "🎓", label: "Ujian" },
     { href: "/belajar/profil", icon: "⭐", label: t("my_profile") },
   ];
 

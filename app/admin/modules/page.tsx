@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { buildSoalDocx, downloadBlob } from "@/lib/export/docx-soal";
+import { getKop, warnIfNoKop } from "@/lib/kop";
 import type { Module, Question, Subject } from "@/lib/types";
 
 export default function ModulesPage() {
@@ -25,7 +26,9 @@ export default function ModulesPage() {
         .eq("module_id", m.id)
         .order("urutan");
       const subject = subjects.find((x) => x.id === m.subject_id);
-      const blob = await buildSoalDocx(m, subject, (data as Question[]) ?? [], withKey);
+      const kop = await getKop();
+      warnIfNoKop(kop);
+      const blob = await buildSoalDocx(m, subject, (data as Question[]) ?? [], withKey, kop);
       const slug = m.judul_id.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
       downloadBlob(blob, `soal-${slug}${withKey ? "-kunci" : ""}.docx`);
     } finally {

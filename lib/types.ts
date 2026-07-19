@@ -1,4 +1,4 @@
-export type Role = "admin" | "student";
+export type Role = "superadmin" | "guru" | "siswa";
 export type Lang = "id" | "en";
 export type GameType =
   | "tebak_huruf"
@@ -26,6 +26,9 @@ export interface Profile {
   created_at: string;
   tahun_ajaran_id: string | null;
   aktif: boolean;
+  guru_id: string | null;
+  status_akun: "aktif" | "nonaktif";
+  info_langganan: string;
 }
 
 export interface TahunAjaran {
@@ -115,6 +118,55 @@ export interface Badge {
   deskripsi_id: string;
   deskripsi_en: string;
   xp_syarat: number;
+}
+
+export interface Exam {
+  id: string;
+  guru_id: string;
+  nama: string;
+  jenis: "UTS" | "UAS" | "Lainnya";
+  subject_id: string | null;
+  tingkat_kelas: number;
+  tahun_ajaran_id: string | null;
+  status: "draft" | "terbit";
+  mode_online: boolean;
+  buka: string | null;
+  tutup: string | null;
+  durasi_menit: number;
+  acak_soal: boolean;
+  acak_opsi: boolean;
+  peserta_kelas: number[];
+  peserta_siswa: string[];
+  created_at: string;
+}
+
+export interface ExamQuestion {
+  id: string;
+  exam_id: string;
+  question_id: string | null; // null = soal khusus ujian
+  tipe: "pg" | "esai" | null;
+  pertanyaan_id: string | null;
+  pertanyaan_en: string | null;
+  opsi: { id: string[]; en: string[] } | null;
+  jawaban_benar: string | null;
+  gambar_url: string | null;
+  poin: number;
+  urutan: number;
+}
+
+export interface ExamAttempt {
+  id: string;
+  exam_id: string;
+  student_id: string;
+  mulai: string;
+  selesai: string | null;
+  status: "berjalan" | "selesai";
+  jawaban: Record<string, string>;
+  ragu: string[];
+  hasil: Record<string, { benar: boolean | null; poin: number }>;
+  poin_esai: Record<string, { poin: number; komentar: string }>;
+  nilai_pg: number;
+  nilai: number | null;
 }
 
 export interface AiMessage {

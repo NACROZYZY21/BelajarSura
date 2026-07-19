@@ -7,35 +7,15 @@ import {
   ImageRun,
   Packer,
   Paragraph,
+  Table,
   TextRun,
 } from "docx";
+import { fetchImagePng } from "./img";
+import { buildKopDocx } from "./kop-docx";
+import type { KopSurat } from "@/lib/kop";
 import type { Module, Question, Subject } from "@/lib/types";
 
-/** Word tidak mendukung webp → konversi via canvas ke PNG + ambil dimensinya. */
-async function fetchImagePng(
-  url: string
-): Promise<{ data: ArrayBuffer; width: number; height: number } | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const bitmap = await createImageBitmap(await res.blob());
-    const maxW = 340;
-    const scale = Math.min(1, maxW / bitmap.width);
-    const w = Math.round(bitmap.width * scale);
-    const h = Math.round(bitmap.height * scale);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-    bitmap.close();
-    const blob: Blob = await new Promise((ok, no) =>
-      canvas.toBlob((b) => (b ? ok(b) : no(new Error("konversi gagal"))), "image/png")
-    );
-    return { data: await blob.arrayBuffer(), width: w, height: h };
-  } catch {
-    return null;
-  }
-}
+export { fetchImagePng };
 
 const ABJAD = ["A", "B", "C", "D", "E"];
 
@@ -44,11 +24,12 @@ export async function buildSoalDocx(
   mod: Module,
   subject: Subject | undefined,
   questions: Question[],
-  withKey: boolean
+  withKey: boolean,
+  kop: KopSurat | null = null
 ): Promise<Blob> {
   const pg = questions.filter((q) => q.tipe === "pg");
   const esai = questions.filter((q) => q.tipe === "esai");
-  const children: Paragraph[] = [];
+  const children: (Paragraph | Table)[] = [...(await buildKopDocx(kop))];
 
   // ── KOP ──
   children.push(

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profile?.role !== "admin")
+  if (profile?.role !== "guru")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { texts } = (await req.json()) as { texts: string[] };

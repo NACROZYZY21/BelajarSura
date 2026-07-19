@@ -11,6 +11,8 @@ import {
   TextRun,
   WidthType,
 } from "docx";
+import { buildKopDocx } from "./kop-docx";
+import type { KopSurat } from "@/lib/kop";
 
 export interface RecapRow {
   rank: number;
@@ -36,7 +38,8 @@ function cell(text: string, opts: { bold?: boolean; center?: boolean } = {}) {
 export async function buildRecapDocx(
   rows: RecapRow[],
   mapelNames: string[],
-  subtitle: string
+  subtitle: string,
+  kop: KopSurat | null = null
 ): Promise<Blob> {
   const tanggal = new Date().toLocaleDateString("id-ID", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -74,6 +77,7 @@ export async function buildRecapDocx(
     sections: [
       {
         children: [
+          ...(await buildKopDocx(kop)),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [new TextRun({ text: "REKAP NILAI & RANKING SISWA", bold: true, size: 32 })],

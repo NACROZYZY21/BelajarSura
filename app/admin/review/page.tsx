@@ -27,7 +27,7 @@ export default function ReviewQueuePage() {
         .select()
         .eq("status_review", "menunggu_review")
         .order("created_at"),
-      supabase.from("profiles").select().eq("role", "student"),
+      supabase.from("profiles").select().eq("role", "siswa"),
       supabase.from("modules").select(),
       supabase.from("questions").select().eq("tipe", "esai"),
     ]);

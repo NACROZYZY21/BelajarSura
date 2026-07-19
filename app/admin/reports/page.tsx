@@ -25,7 +25,7 @@ export default function ReportsPage() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select().eq("role", "student"),
+      supabase.from("profiles").select().eq("role", "siswa"),
       supabase.from("modules").select(),
       supabase.from("subjects").select(),
       supabase.from("student_progress").select(),

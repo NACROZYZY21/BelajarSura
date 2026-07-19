@@ -53,7 +53,7 @@ Jawab dalam Bahasa Indonesia, ringkas dan terstruktur.`;
 /** Ambil data agregat untuk mode analis. */
 async function buildAnalystContext(supabase: Awaited<ReturnType<typeof createClient>>) {
   const [profilesR, modulesR, progressR, questionsR] = await Promise.all([
-    supabase.from("profiles").select("id, nama, kelas, xp, streak, last_active").eq("role", "student"),
+    supabase.from("profiles").select("id, nama, kelas, xp, streak, last_active").eq("role", "siswa"),
     supabase.from("modules").select("id, judul_id, tingkat_kelas"),
     supabase.from("student_progress").select(),
     supabase.from("questions").select("id, module_id, pertanyaan_id, tipe"),
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profile?.role !== "admin")
+  if (profile?.role !== "guru")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { mode, messages, conversationId } = (await req.json()) as {

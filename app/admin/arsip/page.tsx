@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { buildRecapDocx, type RecapRow } from "@/lib/export/docx-recap";
 import { downloadBlob } from "@/lib/export/docx-soal";
+import { getKop, warnIfNoKop } from "@/lib/kop";
 import type { Module, Profile, StudentProgress, Subject, TahunAjaran } from "@/lib/types";
 
 export default function ArsipPage() {
@@ -25,7 +26,7 @@ export default function ArsipPage() {
     const supabase = createClient();
     Promise.all([
       supabase.from("tahun_ajaran").select().order("created_at", { ascending: false }),
-      supabase.from("profiles").select().eq("role", "student"),
+      supabase.from("profiles").select().eq("role", "siswa"),
       supabase.from("subjects").select(),
       supabase.from("modules").select(),
       supabase.from("student_progress").select().eq("status", "selesai"),
@@ -67,10 +68,13 @@ export default function ArsipPage() {
   };
 
   const exportTahun = async (ta: TahunAjaran) => {
+    const kop = await getKop();
+    warnIfNoKop(kop);
     const blob = await buildRecapDocx(
       buildRows(ta.id),
       subjects.map((s) => s.nama_id),
-      `Arsip Tahun Ajaran ${ta.nama}`
+      `Arsip Tahun Ajaran ${ta.nama}`,
+      kop
     );
     downloadBlob(blob, `arsip-${ta.nama.replace("/", "-")}.docx`);
   };

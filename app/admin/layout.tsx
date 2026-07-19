@@ -93,12 +93,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin", icon: "📊", label: t("dashboard") },
     { href: "/admin/subjects", icon: "📚", label: t("subjects") },
     { href: "/admin/modules", icon: "📝", label: t("modules") },
+    { href: "/admin/ujian", icon: "🎓", label: "Ujian" },
     { href: "/admin/review", icon: "✏️", label: t("review_queue"), badge: pendingReview },
     { href: "/admin/students", icon: "🎒", label: t("students") },
     { href: "/admin/ai", icon: "🤖", label: t("ai_agent") },
     { href: "/admin/recap", icon: "🧮", label: "Recap Nilai" },
     { href: "/admin/reports", icon: "📈", label: t("reports") },
     { href: "/admin/arsip", icon: "📦", label: "Arsip" },
+    { href: "/admin/kop", icon: "📜", label: "Kop Surat" },
   ];
 
   const logout = async () => {

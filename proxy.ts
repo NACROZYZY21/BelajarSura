@@ -26,7 +26,8 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const needsAuth = path.startsWith("/admin") || path.startsWith("/belajar");
+  const needsAuth =
+    path.startsWith("/admin") || path.startsWith("/belajar") || path.startsWith("/superadmin");
 
   if (!user && needsAuth) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -35,31 +36,41 @@ export async function proxy(request: NextRequest) {
   if (user && (needsAuth || path === "/login" || path === "/")) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, aktif")
+      .select("role, aktif, status_akun")
       .eq("id", user.id)
       .single();
-    const isAdmin = profile?.role === "admin";
+    const role = profile?.role as "superadmin" | "guru" | "siswa" | undefined;
 
-    // siswa nonaktif (tahun ajarannya diarsipkan) tidak boleh masuk
-    if (!isAdmin && profile && profile.aktif === false) {
+    // guru nonaktif (langganan berakhir) ditolak
+    if (role === "guru" && profile?.status_akun !== "aktif") {
       await supabase.auth.signOut();
-      return NextResponse.redirect(new URL("/login?arsip=1", request.url));
+      return NextResponse.redirect(new URL("/login?nonaktif=1", request.url));
+    }
+    // siswa: tenant_id() null berarti diarsipkan ATAU gurunya nonaktif
+    if (role === "siswa") {
+      const { data: tid } = await supabase.rpc("tenant_id");
+      if (!tid) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(new URL("/login?arsip=1", request.url));
+      }
     }
 
+    const home =
+      role === "superadmin" ? "/superadmin" : role === "guru" ? "/admin" : "/belajar";
     if (path === "/login" || path === "/") {
-      return NextResponse.redirect(new URL(isAdmin ? "/admin" : "/belajar", request.url));
+      return NextResponse.redirect(new URL(home, request.url));
     }
-    if (path.startsWith("/admin") && !isAdmin) {
-      return NextResponse.redirect(new URL("/belajar", request.url));
-    }
-    if (path.startsWith("/belajar") && isAdmin) {
-      return NextResponse.redirect(new URL("/admin", request.url));
-    }
+    if (path.startsWith("/superadmin") && role !== "superadmin")
+      return NextResponse.redirect(new URL(home, request.url));
+    if (path.startsWith("/admin") && role !== "guru")
+      return NextResponse.redirect(new URL(home, request.url));
+    if (path.startsWith("/belajar") && role !== "siswa")
+      return NextResponse.redirect(new URL(home, request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/", "/login", "/admin/:path*", "/belajar/:path*"],
+  matcher: ["/", "/login", "/admin/:path*", "/belajar/:path*", "/superadmin/:path*"],
 };

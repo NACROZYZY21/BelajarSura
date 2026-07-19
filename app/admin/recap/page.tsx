@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { buildRecapDocx, type RecapRow } from "@/lib/export/docx-recap";
 import { downloadBlob } from "@/lib/export/docx-soal";
+import { getKop, warnIfNoKop } from "@/lib/kop";
 import type { Module, Profile, StudentProgress, Subject, TahunAjaran } from "@/lib/types";
 
 type SortKey = "rank" | "nama" | "kelas" | "akhir";
@@ -27,7 +28,7 @@ export default function RecapPage() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("profiles").select().eq("role", "student"),
+      supabase.from("profiles").select().eq("role", "siswa"),
       supabase.from("subjects").select().order("urutan"),
       supabase.from("modules").select().order("tingkat_kelas").order("urutan"),
       supabase.from("student_progress").select().eq("status", "selesai"),
@@ -132,7 +133,9 @@ export default function RecapPage() {
           ? `T.A. ${tahunList.find((x) => x.id === tahunId)?.nama ?? ""}`
           : "Semua Tahun Ajaran",
       ].join(" · ");
-      const blob = await buildRecapDocx(recapRows, mapelNames, subtitle);
+      const kop = await getKop();
+      warnIfNoKop(kop);
+      const blob = await buildRecapDocx(recapRows, mapelNames, subtitle, kop);
       downloadBlob(blob, `rekap-nilai${kelas ? `-kelas-${kelas}` : ""}.docx`);
     } finally {
       setExporting(false);

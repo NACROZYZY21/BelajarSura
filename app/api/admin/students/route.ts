@@ -17,8 +17,10 @@ function slugify(nama: string): string {
 
 /** Admin membuat akun siswa (tunggal atau massal). */
 export async function POST(req: Request) {
-  const { status } = await requireAdmin();
-  if (status !== 200) return NextResponse.json({ error: "Forbidden" }, { status });
+  const { user, status } = await requireAdmin();
+  if (status !== 200 || !user)
+    return NextResponse.json({ error: "Forbidden" }, { status });
+  const guruId = user.id; // tenant pemilik akun-akun siswa baru
 
   const body = (await req.json()) as { students: Partial<NewStudent>[] };
   if (!Array.isArray(body.students) || body.students.length === 0 || body.students.length > 60)
@@ -45,7 +47,8 @@ export async function POST(req: Request) {
   try {
     const results = await withDb(async (db) => {
       const { rows: tahunRows } = await db.query(
-        "select id from public.tahun_ajaran where status='aktif' limit 1"
+        "select id from public.tahun_ajaran where status='aktif' and guru_id=$1::uuid limit 1",
+        [guruId]
       );
       const tahunId = tahunRows[0]?.id ?? null;
       const out: { nama: string; username: string; password: string; ok: boolean; pesan?: string }[] = [];
@@ -69,16 +72,16 @@ export async function POST(req: Request) {
         }
         try {
           const uid = await createAuthUser(db, username + DOMAIN, s.password, {
-            role: "student",
+            role: "siswa",
             nama: s.nama,
             kelas: String(s.kelas),
             avatar: "🐣",
+            guru_id: guruId,
           });
-          if (tahunId)
-            await db.query(
-              "update public.profiles set tahun_ajaran_id=$1, aktif=true where id=$2::uuid",
-              [tahunId, uid]
-            );
+          await db.query(
+            "update public.profiles set tahun_ajaran_id=$1, aktif=true, guru_id=$2::uuid where id=$3::uuid",
+            [tahunId, guruId, uid]
+          );
           out.push({ nama: s.nama, username, password: s.password, ok: true });
         } catch (e) {
           out.push({ ...s, ok: false, pesan: e instanceof Error ? e.message : "gagal" });

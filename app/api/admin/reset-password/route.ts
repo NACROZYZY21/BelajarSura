@@ -16,12 +16,23 @@ export async function POST(req: Request) {
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profile?.role !== "admin")
+  if (profile?.role !== "guru")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { studentId, newPassword } = await req.json();
   if (!studentId || !newPassword || String(newPassword).length < 6)
     return NextResponse.json({ error: "Password minimal 6 karakter" }, { status: 400 });
+
+  // tenant: guru hanya boleh reset password siswanya sendiri
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", studentId)
+    .eq("guru_id", user.id)
+    .eq("role", "siswa")
+    .maybeSingle();
+  if (!target)
+    return NextResponse.json({ error: "Siswa bukan milik akun Anda" }, { status: 403 });
 
   const db = new Client({
     connectionString: process.env.DATABASE_URL,

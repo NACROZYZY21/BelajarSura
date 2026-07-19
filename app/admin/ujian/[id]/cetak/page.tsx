@@ -1,48 +1,63 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { kopTerisi, type KopSurat } from "@/lib/kop";
-import type { Module, Question, Subject } from "@/lib/types";
+import type { Exam, ExamQuestion, Question, Subject } from "@/lib/types";
 
 const ABJAD = ["A", "B", "C", "D", "E"];
 
-/** Halaman cetak lembar soal — pakai Cetak browser → "Simpan sebagai PDF".
- *  ?kunci=1 menampilkan versi guru dengan kunci jawaban. */
-export default function CetakSoalPage({ params }: { params: Promise<{ id: string }> }) {
+/** Cetak lembar ujian (Simpan sebagai PDF). ?kunci=1 = versi guru. */
+export default function CetakUjianPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const searchParams = useSearchParams();
-  const withKey = searchParams.get("kunci") === "1";
-
-  const [mod, setMod] = useState<Module | null>(null);
+  const withKey = useSearchParams().get("kunci") === "1";
+  const [exam, setExam] = useState<Exam | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [soal, setSoal] = useState<any[]>([]);
   const [kop, setKop] = useState<KopSurat | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.from("kop_surat").select().maybeSingle().then(({ data }) => setKop(data as KopSurat));
-    supabase.from("modules").select().eq("id", id).single().then(async ({ data }) => {
+    supabase.from("exams").select().eq("id", id).single().then(async ({ data }) => {
       if (!data) return;
-      setMod(data as Module);
-      const [s, q] = await Promise.all([
-        supabase.from("subjects").select().eq("id", data.subject_id).single(),
-        supabase.from("questions").select().eq("module_id", id).order("urutan"),
-      ]);
-      setSubject(s.data as Subject);
-      setQuestions((q.data as Question[]) ?? []);
+      setExam(data as Exam);
+      if (data.subject_id) {
+        const { data: s } = await supabase.from("subjects").select().eq("id", data.subject_id).single();
+        setSubject(s as Subject);
+      }
+      const { data: eqs } = await supabase.from("exam_questions").select().eq("exam_id", id).order("urutan");
+      const rows = (eqs as ExamQuestion[]) ?? [];
+      const ids = rows.map((r) => r.question_id).filter(Boolean) as string[];
+      let qmap = new Map<string, Question>();
+      if (ids.length) {
+        const { data: qs } = await supabase.from("questions").select().in("id", ids);
+        qmap = new Map(((qs as Question[]) ?? []).map((q) => [q.id, q]));
+      }
+      setSoal(rows.map((eq) => {
+        const q = eq.question_id ? qmap.get(eq.question_id) : undefined;
+        return {
+          id: eq.id,
+          tipe: eq.tipe ?? q?.tipe ?? "pg",
+          pertanyaan_id: eq.pertanyaan_id ?? q?.pertanyaan_id ?? "",
+          opsi: eq.opsi ?? q?.opsi ?? null,
+          jawaban_benar: eq.jawaban_benar ?? q?.jawaban_benar ?? null,
+          gambar_url: eq.gambar_url ?? q?.gambar_url ?? null,
+          poin: eq.poin,
+        };
+      }));
     });
   }, [id]);
 
-  if (!mod) return <p className="p-8 text-slate-400">Memuat...</p>;
-
-  const pg = questions.filter((q) => q.tipe === "pg");
-  const esai = questions.filter((q) => q.tipe === "esai");
+  if (!exam) return <p className="p-8 text-slate-400">Memuat...</p>;
+  const pg = soal.filter((q) => q.tipe === "pg");
+  const esai = soal.filter((q) => q.tipe === "esai");
+  const totalPoin = soal.reduce((s, q) => s + q.poin, 0);
 
   return (
     <div className="mx-auto max-w-2xl bg-white p-8 print:p-0">
-      {/* sembunyikan kerangka admin saat dicetak */}
       <style>{`
         @media print {
           aside, nav, header, .no-print { display: none !important; }
@@ -53,23 +68,20 @@ export default function CetakSoalPage({ params }: { params: Promise<{ id: string
 
       <div className="no-print mb-6 flex items-center justify-between rounded-xl bg-sky-50 p-4">
         <p className="text-sm font-semibold text-slate-600">
-          🖨️ Klik tombol lalu pilih <b>&quot;Simpan sebagai PDF&quot;</b> di dialog cetak.
+          🖨️ Klik tombol lalu pilih <b>&quot;Simpan sebagai PDF&quot;</b>.
         </p>
-        <button
-          onClick={() => window.print()}
-          className="rounded-xl bg-sky-500 px-5 py-2 font-semibold text-white shadow hover:bg-sky-600"
-        >
+        <button onClick={() => window.print()}
+          className="rounded-xl bg-sky-500 px-5 py-2 font-semibold text-white shadow hover:bg-sky-600">
           🖨️ Cetak / Simpan PDF
         </button>
       </div>
 
       {!kopTerisi(kop) && (
-        <p className="no-print mb-4 rounded-xl bg-sunny-100 px-4 py-2 text-sm font-semibold text-tangerine-500">
-          💡 Kop masih polos — atur kop suratmu di menu <b>Kop Surat</b> agar dokumen tampil resmi.
+        <p className="no-print mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-600">
+          💡 Kop masih polos — atur di menu <b>Kop Surat</b>.
         </p>
       )}
 
-      {/* KOP SURAT GURU (logo kiri, teks tengah, garis dobel) */}
       {kopTerisi(kop) && kop && (
         <div className="mb-1">
           <div className="flex items-center gap-4">
@@ -93,19 +105,17 @@ export default function CetakSoalPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      <div className="border-b-4 border-double border-slate-800 pb-3 text-center">
-        <h1 className="text-xl font-bold tracking-wide">LEMBAR SOAL — BELAJAR CERIA</h1>
+      <div className="mt-3 border-b-2 border-slate-800 pb-3 text-center">
+        <h1 className="text-lg font-bold uppercase tracking-wide">
+          LEMBAR {exam.jenis} — {exam.nama}
+        </h1>
         <p className="text-sm">
-          {subject?.nama_id} · {mod.judul_id} · Kelas {mod.tingkat_kelas}
+          {subject?.nama_id} · Kelas {exam.tingkat_kelas} · Total {totalPoin} poin · Waktu {exam.durasi_menit} menit
         </p>
-        {withKey && (
-          <p className="mt-1 text-sm font-bold text-red-600">
-            — VERSI GURU (DENGAN KUNCI JAWABAN) —
-          </p>
-        )}
+        {withKey && <p className="mt-1 text-sm font-bold text-red-600">— VERSI GURU (DENGAN KUNCI) —</p>}
       </div>
       <p className="my-4 text-sm">
-        Nama: ______________________________&nbsp;&nbsp;&nbsp; Tanggal: ______________
+        Nama: ______________________ &nbsp; Kelas: ______ &nbsp; Tanggal: ______________
       </p>
 
       {pg.length > 0 && (
@@ -114,16 +124,14 @@ export default function CetakSoalPage({ params }: { params: Promise<{ id: string
           <ol className="space-y-4">
             {pg.map((q, i) => (
               <li key={q.id} className="break-inside-avoid text-sm">
-                <p>
-                  <b>{i + 1}.</b> {q.pertanyaan_id}{" "}
-                  <span className="text-xs italic text-slate-400">({q.poin} poin)</span>
-                </p>
+                <p><b>{i + 1}.</b> {q.pertanyaan_id}{" "}
+                  <span className="text-xs italic text-slate-400">({q.poin} poin)</span></p>
                 {q.gambar_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={q.gambar_url} alt="" className="my-2 ml-5 max-h-40 rounded" />
                 )}
                 <div className="ml-5 mt-1 grid grid-cols-2 gap-x-6 gap-y-0.5">
-                  {(q.opsi?.id ?? []).map((opt, oi) => {
+                  {(q.opsi?.id ?? []).map((opt: string, oi: number) => {
                     const isKey = withKey && String(oi) === q.jawaban_benar;
                     return (
                       <p key={oi} className={isKey ? "font-bold text-green-700" : ""}>
@@ -144,10 +152,8 @@ export default function CetakSoalPage({ params }: { params: Promise<{ id: string
           <ol className="space-y-5">
             {esai.map((q, i) => (
               <li key={q.id} className="break-inside-avoid text-sm">
-                <p>
-                  <b>{i + 1}.</b> {q.pertanyaan_id}{" "}
-                  <span className="text-xs italic text-slate-400">({q.poin} poin)</span>
-                </p>
+                <p><b>{i + 1}.</b> {q.pertanyaan_id}{" "}
+                  <span className="text-xs italic text-slate-400">({q.poin} poin)</span></p>
                 {q.gambar_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={q.gambar_url} alt="" className="my-2 ml-5 max-h-40 rounded" />
