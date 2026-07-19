@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🐥 Belajar Ceria
 
-## Getting Started
+Platform belajar interaktif untuk anak SD (kelas 1–6) — bilingual 🇮🇩/🇬🇧, penuh animasi, gamifikasi, dan AI Agent untuk guru.
 
-First, run the development server:
+**Stack:** Next.js (App Router) + TypeScript · Tailwind CSS + Framer Motion · Supabase (Auth, PostgreSQL, RLS) · OpenRouter (default: Claude Haiku 4.5) · Web Speech API (TTS gratis).
+
+---
+
+## 🚀 Setup (sekali saja)
+
+### 1. Isi API key di `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...   # Supabase → Settings → API Keys
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+OPENROUTER_API_KEY=sk-or-v1-...                    # https://openrouter.ai/keys
+OPENROUTER_MODEL=anthropic/claude-haiku-4.5        # bisa diganti model lain
+```
+
+> ⚠️ Jangan pernah commit `.env.local` (sudah ada di `.gitignore`).
+> `DATABASE_URL` dan `OPENROUTER_API_KEY` hanya dipakai di server.
+> Catatan: tidak ada model Claude yang gratis di OpenRouter; alternatif gratis
+> misalnya `google/gemini-2.0-flash-exp:free`.
+
+### 2. Setup database (migration + akun demo + konten)
+
+```bash
+node scripts/setup-db.mjs
+```
+
+Satu perintah ini menjalankan migration (`supabase/migrations/001_init.sql`:
+tabel, trigger profil otomatis, RLS, fungsi leaderboard), membuat akun demo,
+dan mengisi konten. Aman dijalankan ulang (idempotent).
+
+Data demo: 2 mapel, 6 modul (dengan soal & game), 5 game global, 6 badge, dan akun:
+
+| Role  | Login | Password |
+|-------|-------|----------|
+| Admin | `admin@belajarceria.id` | `admin123` |
+| Siswa kelas 1 | `budi` | `belajar123` |
+| Siswa kelas 2 | `sari` | `belajar123` |
+
+(Siswa cukup mengetik nama pengguna — domain email ditambahkan otomatis.)
+
+### 3. Jalankan
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka http://localhost:3000 → login sebagai siswa (`/belajar`) atau admin (`/admin`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗺️ Fitur
 
-## Learn More
+**Siswa** — peta petualangan modul berkelok (terkunci bertahap), materi dengan tombol 🔊 TTS, kuis PG dengan confetti & maskot, soal isian, 5 game (Tebak Huruf, Susun Suku Kata, Cocokkan Gambar & Kata, Hitung Benda, Memory), XP + level + evolusi maskot, bintang 1–3, streak harian 🔥, badge, avatar unlock, leaderboard kelas, saran remedial otomatis.
 
-To learn more about Next.js, take a look at the following resources:
+**Admin** — dashboard statistik + grafik, CRUD mapel & modul (editor soal + game), monitoring siswa (detail progres, grafik skor, topik sering salah, reset password), laporan + ekspor CSV, toggle leaderboard, dan **AI Agent** 2 mode:
+- **Kreator Modul** — minta AI membuatkan draft modul lengkap → preview → simpan sebagai draft → publish.
+- **Analis Data** — AI membaca data progres terkini dari database dan memberi insight & rekomendasi.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Struktur penting
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/belajar/*        interface siswa
+app/admin/*          interface admin
+app/api/ai           proxy OpenRouter (server-only)
+app/api/admin/*      reset password via koneksi Postgres langsung
+components/games/*   5 game interaktif
+lib/                 supabase clients, i18n, gamifikasi, TTS, sfx
+supabase/migrations  skema SQL + RLS
+scripts/setup-db.mjs migration + seed (idempotent)
+```
