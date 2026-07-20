@@ -15,6 +15,14 @@ type Tab = "pengaturan" | "soal" | "hasil";
 const input = "w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none focus:border-sky-400";
 const ABJAD = ["A", "B", "C", "D", "E"];
 
+/** ISO UTC → nilai input datetime-local dalam WAKTU LOKAL (WIB dsb). */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
 /** Gabungkan tampilan soal ujian (bank modul / khusus). */
 function merge(eq: ExamQuestion, qmap: Map<string, Question>): SoalUjian {
   const q = eq.question_id ? qmap.get(eq.question_id) : undefined;
@@ -163,14 +171,14 @@ export default function UjianEditorPage({ params }: { params: Promise<{ id: stri
             </label>
             {exam.mode_online && (
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-slate-500">Jadwal BUKA
+                <label className="text-xs font-semibold text-slate-500">Jadwal BUKA (waktu setempat)
                   <input type="datetime-local" className={`${input} mt-1`}
-                    value={exam.buka ? exam.buka.slice(0, 16) : ""}
+                    value={toLocalInput(exam.buka)}
                     onChange={(e) => setExam({ ...exam, buka: e.target.value ? new Date(e.target.value).toISOString() : null })} />
                 </label>
-                <label className="text-xs font-semibold text-slate-500">Jadwal TUTUP
+                <label className="text-xs font-semibold text-slate-500">Jadwal TUTUP (waktu setempat)
                   <input type="datetime-local" className={`${input} mt-1`}
-                    value={exam.tutup ? exam.tutup.slice(0, 16) : ""}
+                    value={toLocalInput(exam.tutup)}
                     onChange={(e) => setExam({ ...exam, tutup: e.target.value ? new Date(e.target.value).toISOString() : null })} />
                 </label>
                 <label className="text-xs font-semibold text-slate-500">Durasi (menit)
@@ -602,7 +610,7 @@ function HasilTab({ examId, eqs, qmap, totalPoin }: {
                 <p className="font-semibold text-slate-800">{s?.nama ?? "?"}</p>
                 <p className="text-xs text-slate-400">
                   {att.status === "selesai"
-                    ? `Selesai ${att.selesai?.slice(0, 16).replace("T", " ")}`
+                    ? `Selesai ${att.selesai ? new Date(att.selesai).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}`
                     : "Sedang mengerjakan..."}
                   {adaEsaiBelum && " · ✏️ esai belum dinilai"}
                 </p>

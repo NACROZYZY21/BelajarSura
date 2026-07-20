@@ -302,7 +302,12 @@ export default function ManajemenGuruPage() {
                   </div>
                   <div className="rounded-xl bg-slate-50 p-4">
                     <p className="font-display text-sm font-extrabold text-slate-700">
-                      {detail.stats.terakhirLogin ? detail.stats.terakhirLogin.slice(0, 16).replace("T", " ") : "belum pernah"}
+                      {detail.stats.terakhirLogin
+                        ? new Date(detail.stats.terakhirLogin).toLocaleString("id-ID", {
+                            day: "2-digit", month: "short", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                          })
+                        : "belum pernah"}
                     </p>
                     <p className="text-xs font-semibold text-slate-500">Terakhir login</p>
                   </div>
